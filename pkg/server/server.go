@@ -3,9 +3,6 @@ package server
 import (
 	"archive/zip"
 	"encoding/json"
-	"path"
-	"strconv"
-	//"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gravesm/blueshift/pkg/models"
 	"github.com/gravesm/blueshift/pkg/services"
@@ -15,6 +12,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"strconv"
 )
 
 type Server struct {
@@ -28,15 +27,19 @@ func NewServer(c models.Collection, sh services.StreamHandler, tmpl string) *mux
 
 	r := mux.NewRouter()
 	r.HandleFunc("/tracks/", s.getTracks).Methods("GET")
-	r.HandleFunc("/tracks/", s.addTrack).Methods("POST")
+	r.HandleFunc("/tracks/", s.addTrack).
+		Methods("POST").Headers("Content-type", "application/json")
 	r.HandleFunc("/tracks/{id:[0-9]+}", s.getTrack).Methods("GET")
-	r.HandleFunc("/tracks/{id:[0-9]+}", s.editTrack).Methods("POST")
+	r.HandleFunc("/tracks/{id:[0-9]+}", s.editTrack).
+		Methods("POST").Headers("Content-type", "application/json")
 	r.HandleFunc("/tracks/upload", s.uploadTrack).Methods("POST")
 
 	r.HandleFunc("/releases/", s.getReleases).Methods("GET")
-	r.HandleFunc("/releases/", s.addRelease).Methods("POST")
+	r.HandleFunc("/releases/", s.addRelease).
+		Methods("POST").Headers("Content-type", "application/json")
 	r.HandleFunc("/releases/{id:[0-9]+}", s.getRelease).Methods("GET")
-	r.HandleFunc("/releases/{id:[0-9]+}", s.editRelease).Methods("POST")
+	r.HandleFunc("/releases/{id:[0-9]+}", s.editRelease).
+		Methods("POST").Headers("Content-type", "application/json")
 	r.HandleFunc("/releases/upload", s.uploadRelease).Methods("POST")
 
 	return r
@@ -74,13 +77,11 @@ func (s Server) getTrack(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) addTrack(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	p, _ := strconv.Atoi(r.PostFormValue("position"))
-	d, _ := strconv.Atoi(r.PostFormValue("disc"))
 	var t models.Track
-	t.Title = r.PostFormValue("title")
-	t.Position = p
-	t.Disc = d
+	err := json.NewDecoder(r.Body).Decode(&t)
+	if err != nil {
+		log.Fatal(err)
+	}
 	s.collection.CreateTrack(&t)
 }
 
@@ -91,12 +92,10 @@ func (s Server) editTrack(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	t := s.collection.GetTrack(id)
-	r.ParseForm()
-	p, _ := strconv.Atoi(r.PostFormValue("position"))
-	d, _ := strconv.Atoi(r.PostFormValue("disc"))
-	t.Title = r.PostFormValue("title")
-	t.Position = p
-	t.Disc = d
+	err = json.NewDecoder(r.Body).Decode(&t)
+	if err != nil {
+		log.Fatal(err)
+	}
 	s.collection.SaveTrack(t)
 }
 
@@ -148,9 +147,11 @@ func (s Server) getRelease(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) addRelease(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
 	var rel models.Release
-	rel.Title = r.PostFormValue("title")
+	err := json.NewDecoder(r.Body).Decode(&rel)
+	if err != nil {
+		log.Fatal(err)
+	}
 	s.collection.CreateRelease(&rel)
 }
 
@@ -161,8 +162,10 @@ func (s Server) editRelease(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	rel := s.collection.GetRelease(id)
-	r.ParseForm()
-	rel.Title = r.PostFormValue("title")
+	err = json.NewDecoder(r.Body).Decode(&rel)
+	if err != nil {
+		log.Fatal(err)
+	}
 	s.collection.SaveRelease(rel)
 }
 

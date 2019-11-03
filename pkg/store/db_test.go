@@ -81,12 +81,14 @@ func TestDb(t *testing.T) {
 
 		Convey("should save track", func() {
 			t := models.Track{Title: "Track 1"}
+			t.AddStream(models.Stream{Path: "foo/bar"})
 			store.CreateTrack(&t)
 			t.Title = "Track 2"
 			store.SaveTrack(t)
 			var trk models.Track
-			db.First(&trk)
+			db.Preload("Streams").First(&trk)
 			So(trk.Title, ShouldEqual, "Track 2")
+			So(len(trk.Streams), ShouldEqual, 1)
 		})
 
 		Convey("should retrieve track", func() {
