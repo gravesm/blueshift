@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/gravesm/blueshift/pkg/models"
 	"github.com/gravesm/blueshift/pkg/services"
@@ -11,7 +13,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -63,11 +64,8 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("should add track", func() {
-			post := url.Values{}
-			post.Add("title", "Track 1")
-			post.Add("position", "1")
-			req, _ := http.NewRequest("POST", "/tracks/", strings.NewReader(post.Encode()))
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			post, _ := json.Marshal(&models.Track{Title: "Track 1", Position: 1})
+			req, _ := http.NewRequest("POST", "/tracks/", bytes.NewReader(post))
 			rec := httptest.NewRecorder()
 			hdlr := http.HandlerFunc(s.addTrack)
 			hdlr.ServeHTTP(rec, req)
@@ -81,22 +79,21 @@ func TestServer(t *testing.T) {
 
 		Convey("should edit track", func() {
 			t := models.Track{Title: "Track 1", Position: 1}
+			t.AddStream(models.Stream{Path: "foo/bar"})
 			coll.CreateTrack(&t)
-			post := url.Values{}
-			post.Add("title", "Track 3")
-			post.Add("position", "3")
-			req, _ := http.NewRequest("POST", "/tracks/", strings.NewReader(post.Encode()))
+			post := `{"title": "Track 3", "position": 3}`
+			req, _ := http.NewRequest("POST", "/tracks/", strings.NewReader(post))
 			req = mux.SetURLVars(req, map[string]string{"id": strconv.FormatInt(t.ID, 10)})
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			rec := httptest.NewRecorder()
 			hdlr := http.HandlerFunc(s.editTrack)
 			hdlr.ServeHTTP(rec, req)
 			var trk models.Track
-			db.First(&trk)
+			db.Preload("Streams").First(&trk)
 			So(rec.Code, ShouldEqual, http.StatusOK)
 			So(trk.Title, ShouldEqual, "Track 3")
 			So(trk.Position, ShouldEqual, 3)
 			So(trk.Disc, ShouldEqual, 0)
+			So(len(trk.Streams), ShouldEqual, 1)
 		})
 
 		Convey("should add track from upload", func() {
@@ -144,10 +141,8 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("should add release", func() {
-			post := url.Values{}
-			post.Add("title", "Release 1")
-			req, _ := http.NewRequest("POST", "/releases/", strings.NewReader(post.Encode()))
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			post, _ := json.Marshal(&models.Release{Title: "Release 1"})
+			req, _ := http.NewRequest("POST", "/releases/", bytes.NewReader(post))
 			rec := httptest.NewRecorder()
 			hdlr := http.HandlerFunc(s.addRelease)
 			hdlr.ServeHTTP(rec, req)
@@ -159,19 +154,19 @@ func TestServer(t *testing.T) {
 
 		Convey("should edit release", func() {
 			r := models.Release{Title: "Release 1"}
+			r.AddTrack(models.Track{Title: "Title 1"})
 			coll.CreateRelease(&r)
-			post := url.Values{}
-			post.Add("title", "Release 2")
-			req, _ := http.NewRequest("POST", "/releases/", strings.NewReader(post.Encode()))
+			post := `{"title": "Release 2"}`
+			req, _ := http.NewRequest("POST", "/releases/", strings.NewReader(post))
 			req = mux.SetURLVars(req, map[string]string{"id": strconv.FormatInt(r.ID, 10)})
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			rec := httptest.NewRecorder()
 			hdlr := http.HandlerFunc(s.editRelease)
 			hdlr.ServeHTTP(rec, req)
 			var rel models.Release
-			db.First(&rel)
+			db.Preload("Tracks").First(&rel)
 			So(rec.Code, ShouldEqual, http.StatusOK)
 			So(rel.Title, ShouldEqual, "Release 2")
+			So(len(rel.Tracks), ShouldEqual, 1)
 		})
 
 		SkipConvey("should add release from upload", func() {})
