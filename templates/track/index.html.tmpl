@@ -1,0 +1,8 @@
+{{ define "content" }}
+  {{ range . }}
+  <div class="columns track">
+    <div class="column col-1">{{ .Position }}</div>
+    <div class="column col-7">{{ .Title }}</div>
+  </div>
+  {{ end }}
+{{ end }}
