@@ -19,11 +19,12 @@ import (
 type Server struct {
 	collection models.Collection
 	streamhdlr services.StreamHandler
-	templates  string
+	templates  map[string]*template.Template
 }
 
 func NewServer(c models.Collection, sh services.StreamHandler, tmpl string) *mux.Router {
-	s := &Server{collection: c, streamhdlr: sh, templates: tmpl}
+	templates := loadTemplates(tmpl)
+	s := &Server{collection: c, streamhdlr: sh, templates: templates}
 
 	r := mux.NewRouter()
 	r.HandleFunc("/tracks/", s.getTracks).Methods("GET")
@@ -46,16 +47,7 @@ func NewServer(c models.Collection, sh services.StreamHandler, tmpl string) *mux
 }
 
 func (s Server) getTracks(w http.ResponseWriter, r *http.Request) {
-	trks := s.collection.Tracks(0, 10)
-	tmpl := path.Join(s.templates, "tracks.html")
-	t, err := template.ParseFiles(tmpl)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = t.Execute(w, trks)
-	if err != nil {
-		log.Fatal(err)
-	}
+	s.render("track/index", w, s.collection.Tracks(0, 10))
 }
 
 func (s Server) getTrack(w http.ResponseWriter, r *http.Request) {
@@ -64,16 +56,7 @@ func (s Server) getTrack(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	trk := s.collection.GetTrack(id)
-	tmpl := path.Join(s.templates, "track.html")
-	t, err := template.ParseFiles(tmpl)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = t.Execute(w, trk)
-	if err != nil {
-		log.Fatal(err)
-	}
+	s.render("track/track", w, s.collection.GetTrack(id))
 }
 
 func (s Server) addTrack(w http.ResponseWriter, r *http.Request) {
@@ -116,16 +99,7 @@ func (s Server) uploadTrack(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) getReleases(w http.ResponseWriter, r *http.Request) {
-	rels := s.collection.Releases(0, 10)
-	tmpl := path.Join(s.templates, "releases.html")
-	t, err := template.ParseFiles(tmpl)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = t.Execute(w, rels)
-	if err != nil {
-		log.Fatal(err)
-	}
+	s.render("release/index", w, s.collection.Releases(0, 10))
 }
 
 func (s Server) getRelease(w http.ResponseWriter, r *http.Request) {
@@ -134,16 +108,7 @@ func (s Server) getRelease(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	rel := s.collection.GetRelease(id)
-	tmpl := path.Join(s.templates, "release.html")
-	t, err := template.ParseFiles(tmpl)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = t.Execute(w, rel)
-	if err != nil {
-		log.Fatal(err)
-	}
+	s.render("release/release", w, s.collection.GetRelease(id))
 }
 
 func (s Server) addRelease(w http.ResponseWriter, r *http.Request) {
@@ -213,4 +178,26 @@ func (s Server) makeTrack(t *models.Track, f io.ReadSeeker) {
 
 	path := s.streamhdlr.Store(f)
 	t.AddStream(models.Stream{Path: path, Format: format})
+}
+
+func (s Server) render(tmpl string, w http.ResponseWriter, ctx interface{}) {
+	err := s.templates[tmpl].ExecuteTemplate(w, "base", ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func loadTemplates(root string) map[string]*template.Template {
+	templates := make(map[string]*template.Template)
+	base := template.Must(template.ParseGlob(path.Join(root, "base.html")))
+	tmpls := []string{"release/index", "release/release", "track/index", "track/track"}
+	for _, t := range tmpls {
+		b, err := base.Clone()
+		if err != nil {
+			log.Fatal(err)
+		}
+		b.ParseFiles(path.Join(root, t+".html.tmpl"))
+		templates[t] = b
+	}
+	return templates
 }

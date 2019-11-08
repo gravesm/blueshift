@@ -1,0 +1,15 @@
+{{ define "content" }}
+  {{ range . }}
+  <div class="columns track">
+    <div class="column col-7">
+      <a href="/releases/{{ .ID }}">
+      {{ if .Title }}
+        {{ .Title }}
+      {{ else }}
+        Unknown
+      {{ end }}
+      </a>
+    </div>
+  </div>
+  {{ end }}
+{{ end }}

@@ -34,7 +34,11 @@ func TestServer(t *testing.T) {
 
 		coll := store.NewDbCollection(db)
 		store.Initialize(db)
-		s := Server{collection: coll, streamhdlr: services.FileStreamHandler{tmp}, templates: "../../templates"}
+		s := Server{
+			collection: coll,
+			streamhdlr: services.FileStreamHandler{tmp},
+			templates:  loadTemplates("../../templates"),
+		}
 
 		Convey("should list tracks", func() {
 			coll.CreateTrack(&models.Track{Title: "Track 1"})

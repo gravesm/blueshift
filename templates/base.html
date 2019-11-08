@@ -1,0 +1,40 @@
+{{ define "base" }}
+<html>
+  <head>
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+    <style type="text/css">
+      .left-box {
+        width: 200px;
+        position: absolute;
+        top: 70px;
+        left: 0;
+      }
+      .main-box {
+        margin-left: 260px;
+        padding: 2em;
+      }
+      .logo {
+        height: 70px;
+      }
+      .track {
+        border-bottom: 1px solid #aaa;
+        padding: 0.2em 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="layout">
+      <header class="logo"><h1>Blueshift</h1></header>
+      <div class="left-box">
+        <ul class="nav">
+          <li class="nav-item"><a href="/releases/">Releases</a></li>
+          <li class="nav-item"><a href="/tracks/">Tracks</a></li>
+        </ul>
+      </div>
+      <div id="main" class="main-box">
+        {{ template "content" . }}
+      </div>
+    </div>
+  </body>
+</html>
+{{ end }}
