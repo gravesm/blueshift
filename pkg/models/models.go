@@ -26,13 +26,16 @@ type Format struct {
 
 type Release struct {
 	ID      int64
+	MBID    string
 	Title   string
+	Year    int
 	Tracks  []Track
 	Artists []Artist `gorm:"many2many:user_languages;"`
 }
 
 type Track struct {
 	ID        int64
+	MBID      string
 	Title     string
 	Position  int
 	Disc      int
