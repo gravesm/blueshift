@@ -3,6 +3,8 @@ package server
 import (
 	"archive/zip"
 	"encoding/json"
+	"fmt"
+	"github.com/dhowden/tag"
 	"github.com/gorilla/mux"
 	"github.com/gravesm/blueshift/pkg/models"
 	"github.com/gravesm/blueshift/pkg/services"
@@ -91,7 +93,11 @@ func (s Server) uploadTrack(w http.ResponseWriter, r *http.Request) {
 	io.Copy(tmp, r.Body)
 
 	var t models.Track
-	s.makeTrack(&t, tmp)
+	var strm models.Stream
+	meta := services.FileMetadata(tmp)
+	s.makeTrack(&t, meta)
+	s.makeStream(&strm, meta, tmp)
+	t.AddStream(strm)
 	s.collection.CreateTrack(&t)
 
 	encoder := json.NewEncoder(w)
@@ -149,6 +155,7 @@ func (s Server) uploadRelease(w http.ResponseWriter, r *http.Request) {
 	var rel models.Release
 	for _, f := range arxv.File {
 		var t models.Track
+		var strm models.Stream
 		trk, err := f.Open()
 		if err != nil {
 			log.Fatal(err)
@@ -160,24 +167,38 @@ func (s Server) uploadRelease(w http.ResponseWriter, r *http.Request) {
 		}
 		defer os.Remove(ftmp.Name())
 		io.Copy(ftmp, trk)
-		s.makeTrack(&t, ftmp)
+		meta := services.FileMetadata(ftmp)
+		s.makeRelease(&rel, meta)
+		s.makeTrack(&t, meta)
+		s.makeStream(&strm, meta, ftmp)
+		t.AddStream(strm)
 		rel.AddTrack(t)
 	}
+
 	s.collection.CreateRelease(&rel)
 }
 
-func (s Server) makeTrack(t *models.Track, f io.ReadSeeker) {
-	m := services.FileMetadata(f)
+func (s Server) makeTrack(t *models.Track, m tag.Metadata) {
+	raw := m.Raw()
 	p, _ := m.Track()
 	d, _ := m.Disc()
-	format := s.collection.GetFormat(string(m.FileType()))
-
 	t.Title = m.Title()
 	t.Position = p
 	t.Disc = d
+	t.MBID = fmt.Sprintf("%v", raw["musicbrainz_trackid"])
+}
 
+func (s Server) makeStream(strm *models.Stream, m tag.Metadata, f io.Reader) {
 	path := s.streamhdlr.Store(f)
-	t.AddStream(models.Stream{Path: path, Format: format})
+	strm.Path = path
+	strm.Format = s.collection.GetFormat(string(m.FileType()))
+}
+
+func (s Server) makeRelease(r *models.Release, m tag.Metadata) {
+	raw := m.Raw()
+	r.Title = m.Album()
+	r.MBID = fmt.Sprintf("%v", raw["musicbrainz_albumid"])
+	r.Year, _ = strconv.Atoi(fmt.Sprintf("%v", raw["originalyear"]))
 }
 
 func (s Server) render(tmpl string, w http.ResponseWriter, ctx interface{}) {
