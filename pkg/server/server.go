@@ -35,6 +35,7 @@ func NewServer(c models.Collection, sh services.StreamHandler, tmpl string) *mux
 	r.HandleFunc("/tracks/{id:[0-9]+}", s.getTrack).Methods("GET")
 	r.HandleFunc("/tracks/{id:[0-9]+}", s.editTrack).
 		Methods("POST").Headers("Content-type", "application/json")
+	r.HandleFunc("/tracks/{id:[0-9]+}/stream", s.stream).Methods("GET")
 	r.HandleFunc("/tracks/upload", s.uploadTrack).Methods("POST")
 
 	r.HandleFunc("/releases/", s.getReleases).Methods("GET")
@@ -44,6 +45,9 @@ func NewServer(c models.Collection, sh services.StreamHandler, tmpl string) *mux
 	r.HandleFunc("/releases/{id:[0-9]+}", s.editRelease).
 		Methods("POST").Headers("Content-type", "application/json")
 	r.HandleFunc("/releases/upload", s.uploadRelease).Methods("POST")
+
+	r.PathPrefix("/static/").Handler(
+		http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	return r
 }
@@ -82,6 +86,18 @@ func (s Server) editTrack(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	s.collection.SaveTrack(t)
+}
+
+func (s Server) stream(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	t := s.collection.GetTrack(id)
+	strm := t.Streams[0]
+	w.Header().Set("Content-type", strm.Format.Mimetype)
+	http.ServeFile(w, r, strm.Path)
 }
 
 func (s Server) uploadTrack(w http.ResponseWriter, r *http.Request) {

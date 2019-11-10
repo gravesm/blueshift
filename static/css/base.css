@@ -1,0 +1,13 @@
+#layout {
+  padding: 0 80px;
+}
+
+.b-menu {
+  padding: 20px 0;
+  margin-bottom: 20px;
+}
+
+.track {
+  border-bottom: 1px solid #aaa;
+  padding: 0.2em 0;
+}

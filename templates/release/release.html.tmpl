@@ -1,6 +1,22 @@
 {{ define "content" }}
-  <div>{{ .Title }}</div>
-  {{ range .Tracks }}
-    <div>{{ .Title }}</div>
-  {{ end }}
+  <div class="container">
+    <div class="columns">
+      <div class="column col-xs-1 col-2"></div>
+      <div class="column col-xs-10 col-6">
+        <h2>{{ .Title }}</h2>
+        {{ range .Tracks }}
+          <div class="columns track">
+            <div class="col-1">{{ .Position }}</div>
+            <div class="col-10">
+              <a href="/tracks/{{ .ID }}">{{ .Title }}</a>
+            </div>
+            <div class="col-1">
+              <a href="/tracks/{{ .ID }}/stream">▶</a>
+            </div>
+          </div>
+        {{ end }}
+      </div>
+      <div class="column col-xs-1 col-xl-4"></div>
+    </div>
+  </div>
 {{ end }}
