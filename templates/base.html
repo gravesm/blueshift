@@ -2,36 +2,18 @@
 <html>
   <head>
     <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
-    <style type="text/css">
-      .left-box {
-        width: 200px;
-        position: absolute;
-        top: 70px;
-        left: 0;
-      }
-      .main-box {
-        margin-left: 260px;
-        padding: 2em;
-      }
-      .logo {
-        height: 70px;
-      }
-      .track {
-        border-bottom: 1px solid #aaa;
-        padding: 0.2em 0;
-      }
-    </style>
+    <link rel="stylesheet" href="/static/css/base.css">
   </head>
   <body>
     <div id="layout">
-      <header class="logo"><h1>Blueshift</h1></header>
-      <div class="left-box">
-        <ul class="nav">
-          <li class="nav-item"><a href="/releases/">Releases</a></li>
-          <li class="nav-item"><a href="/tracks/">Tracks</a></li>
-        </ul>
-      </div>
-      <div id="main" class="main-box">
+      <header class="navbar b-menu">
+        <section class="navbar-section">
+          <a href="/" class="navbar-brand mr-2">Blueshift</a>
+          <a href="/releases/" class="btn btn-link">Releases</a>
+          <a href="/tracks/" class="btn btn-link">Tracks</a>
+        </section>
+      </header>
+      <div id="main">
         {{ template "content" . }}
       </div>
     </div>

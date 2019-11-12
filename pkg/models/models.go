@@ -20,8 +20,9 @@ type Collection interface {
 }
 
 type Format struct {
-	ID   int64
-	Name string
+	ID       int64
+	Name     string
+	Mimetype string
 }
 
 type Release struct {

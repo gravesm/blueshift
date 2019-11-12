@@ -37,7 +37,9 @@ func (db DbCollection) SaveRelease(release models.Release) {
 
 func (db DbCollection) GetRelease(id int64) models.Release {
 	var r models.Release
-	db.handler.Preload("Tracks").First(&r, id)
+	db.handler.Preload("Tracks", func(db *gorm.DB) *gorm.DB {
+		return db.Order("tracks.position asc")
+	}).First(&r, id)
 	return r
 }
 
@@ -57,7 +59,7 @@ func (db DbCollection) SaveTrack(t models.Track) {
 
 func (db DbCollection) GetTrack(id int64) models.Track {
 	var t models.Track
-	err := db.handler.Preload("Streams").First(&t, id).Error
+	err := db.handler.Preload("Streams.Format").First(&t, id).Error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,9 +96,9 @@ func Migrate(db *gorm.DB) {
 func Initialize(db *gorm.DB) {
 	Migrate(db)
 	db.Create(&models.Format{Name: unknown})
-	db.Create(&models.Format{Name: mp3})
-	db.Create(&models.Format{Name: ogg})
-	db.Create(&models.Format{Name: flac})
+	db.Create(&models.Format{Name: mp3, Mimetype: "audio/mpeg"})
+	db.Create(&models.Format{Name: ogg, Mimetype: "audio/ogg"})
+	db.Create(&models.Format{Name: flac, Mimetype: "audio/flac"})
 }
 
 func NewDbCollection(handler *gorm.DB) models.Collection {
